@@ -1,26 +1,132 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --animate-aurora: aurora 24s ease-in-out infinite;
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-sheen: sheen 6s ease-in-out infinite;
+  --animate-marquee: marquee 45s linear infinite;
+  --animate-ping-slow: ping-slow 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+
+  @keyframes aurora {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    33% {
+      transform: translate3d(7%, -9%, 0) scale(1.15);
+    }
+    66% {
+      transform: translate3d(-8%, 6%, 0) scale(0.9);
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-14px);
+    }
+  }
+
+  @keyframes sheen {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.75;
+    }
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @keyframes ping-slow {
+    0% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    75%,
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
   }
 }
 
+:root {
+  color-scheme: light;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-slate-50 text-slate-900;
+}
+
+/* Decorative grid used behind the hero, drawn in the current text colour. */
+@utility bg-hairline-grid {
+  background-image:
+    linear-gradient(to right, currentColor 1px, transparent 1px),
+    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* Fades an element out towards its edges so overlays never end on a hard line. */
+@utility fade-radial {
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black, transparent 100%);
+}
+
+/* Gradient hairline border: sits on a wrapper, content goes in an inset child. */
+@utility ring-gradient {
+  background-image: linear-gradient(
+    130deg,
+    rgb(94 234 212 / 0.55),
+    rgb(255 255 255 / 0.08) 45%,
+    rgb(110 231 183 / 0.4)
+  );
+}
+
+/* Consistent focus treatment across every interactive control. */
+@layer components {
+  .field-control {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900
+      shadow-sm transition outline-none
+      placeholder:text-slate-400
+      focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30
+      disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500
+      read-only:bg-slate-100 read-only:text-slate-500;
+  }
+
+  .field-control-error {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-500/30;
+  }
+}
+
+/* Decorative CSS animations are ambient only — drop them when motion is unwelcome. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-aurora,
+  .animate-float,
+  .animate-sheen,
+  .animate-marquee,
+  .animate-ping-slow {
+    animation: none !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }

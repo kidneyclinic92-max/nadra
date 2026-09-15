@@ -1,0 +1,231 @@
+// Recruitment platform data model.
+//
+// SQLite does not support native enums in Prisma, so every field that is
+// conceptually an enum is stored as a String. The allowed values live in
+// src/lib/constants.ts and are enforced with zod at the application boundary.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String // CANDIDATE | RECRUITER | ADMIN
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  candidate        Candidate?
+  jobsCreated      Job[]         @relation("JobCreatedBy")
+  applicationsSeen Application[] @relation("ApplicationReviewedBy")
+
+  @@index([role])
+}
+
+model Candidate {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Identity
+  fullName        String
+  guardianName    String // father's or husband's name
+  guardianRelation String  @default("FATHER") // FATHER | HUSBAND
+  cnic            String  @unique // 00000-0000000-0
+  dateOfBirth     DateTime?
+  gender          String? // MALE | FEMALE | OTHER
+  maritalStatus   String? // SINGLE | MARRIED | DIVORCED | WIDOWED
+  religion        String?
+  nationality     String  @default("Pakistani")
+
+  // Contact
+  mobile           String
+  alternateMobile  String?
+  contactEmail     String?
+  linkedinUrl      String?
+  portfolioUrl     String?
+
+  // Address
+  currentAddress   String?
+  permanentAddress String?
+  city             String?
+  province         String? // PUNJAB | SINDH | KPK | BALOCHISTAN | GILGIT_BALTISTAN | AJK | ICT
+  postalCode       String?
+
+  // Domicile drives provincial quota allocation
+  domicileDistrict String?
+  domicileProvince String?
+
+  // Quota / relaxation categories used in public sector hiring
+  quotaCategory     String  @default("OPEN_MERIT") // OPEN_MERIT | WOMEN | MINORITY | DISABLED | EX_SERVICEMEN
+  hasDisability     Boolean @default(false)
+  disabilityDetails String?
+
+  isProfileComplete Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  educations   Education[]
+  experiences  Experience[]
+  documents    Document[]
+  applications Application[]
+
+  @@index([province])
+  @@index([domicileProvince])
+  @@index([quotaCategory])
+  @@index([fullName])
+}
+
+model Education {
+  id          String    @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  level         String // MATRIC | INTERMEDIATE | DIPLOMA | BACHELORS | MASTERS | MPHIL | PHD | CERTIFICATION
+  degreeTitle   String
+  majorSubjects String?
+  institution   String
+  boardOrUniversity String?
+  startYear     Int?
+  passingYear   Int
+
+  // Pakistani transcripts come as either raw marks or a CGPA, so both are supported.
+  resultType     String  @default("MARKS") // MARKS | CGPA | GRADE
+  obtainedMarks  Float?
+  totalMarks     Float?
+  cgpa           Float?
+  maxCgpa        Float?
+  grade          String?
+
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  documents Document[]
+
+  @@index([candidateId])
+  @@index([level])
+  @@index([passingYear])
+}
+
+model Experience {
+  id          String    @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  organization     String
+  designation      String
+  department       String?
+  employmentType   String? // FULL_TIME | PART_TIME | CONTRACT | INTERNSHIP
+  startDate        DateTime
+  endDate          DateTime?
+  isCurrent        Boolean   @default(false)
+  responsibilities String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents Document[]
+
+  @@index([candidateId])
+}
+
+model Document {
+  id          String    @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  // Optional links so a certificate can be attached to the record it proves.
+  educationId  String?
+  education    Education?  @relation(fields: [educationId], references: [id], onDelete: SetNull)
+  experienceId String?
+  experience   Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+
+  type         String // PHOTO | CNIC_FRONT | CNIC_BACK | DOMICILE | RESUME | EDUCATION_CERTIFICATE | EXPERIENCE_LETTER | OTHER
+  label        String?
+  originalName String
+  storedName   String // path relative to the upload root, never exposed to clients
+  mimeType     String
+  sizeBytes    Int
+
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([candidateId])
+  @@index([type])
+}
+
+model Job {
+  id          String @id @default(cuid())
+  code        String @unique
+  title       String
+  department  String?
+  description String
+  responsibilities String?
+
+  city           String?
+  province       String?
+  employmentType String @default("FULL_TIME")
+  positions      Int    @default(1)
+  payScale       String? // e.g. BPS-17
+
+  // Eligibility criteria the shortlisting screen filters against
+  minEducationLevel   String? // MATRIC | INTERMEDIATE | ... | PHD
+  requiredDegreeTitle String?
+  minExperienceYears  Int     @default(0)
+  minAge              Int?
+  maxAge              Int?
+  genderRequirement   String  @default("ANY") // ANY | MALE | FEMALE
+  domicileRestriction String  @default("ANY") // ANY | province code
+  requiredSkills      String? // comma separated; SQLite has no array type
+
+  status      String   @default("DRAFT") // DRAFT | OPEN | CLOSED
+  openingDate DateTime @default(now())
+  closingDate DateTime?
+
+  createdById String
+  createdBy   User   @relation("JobCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]
+
+  @@index([status])
+  @@index([closingDate])
+}
+
+model Application {
+  id          String    @id @default(cuid())
+  jobId       String
+  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  status        String  @default("SUBMITTED") // SUBMITTED | UNDER_REVIEW | SHORTLISTED | REJECTED | WITHDRAWN
+  coverNote     String?
+  recruiterNotes String?
+
+  // Cached eligibility score so large applicant lists can be sorted without
+  // recomputing criteria matches on every request.
+  eligibilityScore Int @default(0)
+
+  reviewedById String?
+  reviewedBy   User?     @relation("ApplicationReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+
+  appliedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobId, candidateId])
+  @@index([jobId, status])
+  @@index([candidateId])
+  @@index([status])
+}
