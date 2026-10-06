@@ -4,15 +4,16 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import {
-  APPLICATION_STATUSES,
   EDUCATION_LEVELS,
   JOB_STATUSES,
   PROVINCES,
   labelFor,
 } from "@/lib/constants";
 import { evaluateEligibility } from "@/lib/eligibility";
-import { formatDate, formatDeadline } from "@/lib/format";
+import { formatDate, formatDateTime, formatDeadline } from "@/lib/format";
 import { setJobStatusAction } from "@/lib/actions/jobs";
+import { isScreeningConfigured } from "@/lib/ai/azure-openai";
+import { parseStoredParameters } from "@/lib/ai/screen-resume";
 import {
   Badge,
   Card,
@@ -28,6 +29,7 @@ import {
 import { ActionButton } from "@/components/action-button";
 import { ApplicantTable } from "./applicant-table";
 import { ApplicantFilters } from "./applicant-filters";
+import { ScreeningPanel } from "./screening-panel";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{
@@ -93,11 +95,47 @@ export default async function JobApplicantsPage({
         ? { appliedAt: "desc" }
         : filters.sort === "name"
           ? { candidate: { fullName: "asc" } }
-          : [{ eligibilityScore: "desc" }, { appliedAt: "asc" }],
+          : filters.sort === "ai"
+            ? // SQLite sorts NULLs last on DESC, so unscreened applicants fall
+              // to the bottom rather than displacing scored ones.
+              [{ screening: { matchScore: "desc" } }, { eligibilityScore: "desc" }]
+            : [{ eligibilityScore: "desc" }, { appliedAt: "asc" }],
     include: {
       candidate: {
         include: { educations: true, experiences: true },
       },
+      screening: true,
+    },
+  });
+
+  const screenedCount = await prisma.application.count({
+    where: { jobId: job.id, status: { not: "WITHDRAWN" }, screening: { status: "COMPLETED" } },
+  });
+  const screenableCount = await prisma.application.count({
+    where: { jobId: job.id, status: { not: "WITHDRAWN" } },
+  });
+
+  // Distribution across the recommendation bands, so the panel can show the
+  // shape of the shortlist without the recruiter opening every row.
+  const bandGroups = await prisma.resumeScreening.groupBy({
+    by: ["recommendation"],
+    where: {
+      status: "COMPLETED",
+      application: { jobId: job.id, status: { not: "WITHDRAWN" } },
+    },
+    _count: { _all: true },
+  });
+  const bandCounts = Object.fromEntries(
+    bandGroups
+      .filter((group) => group.recommendation !== null)
+      .map((group) => [group.recommendation as string, group._count._all]),
+  );
+
+  const needsReviewCount = await prisma.application.count({
+    where: {
+      jobId: job.id,
+      status: { not: "WITHDRAWN" },
+      screening: { status: { in: ["NEEDS_MANUAL_REVIEW", "FAILED"] } },
     },
   });
 
@@ -115,6 +153,7 @@ export default async function JobApplicantsPage({
   // rescore every stored application.
   const rows = applications.map((application) => {
     const result = evaluateEligibility(application.candidate, job);
+    const screening = application.screening;
     return {
       id: application.id,
       status: application.status,
@@ -123,6 +162,32 @@ export default async function JobApplicantsPage({
       score: result.score,
       meetsAll: result.meetsAll,
       failedCriteria: result.checks.filter((c) => !c.passed).map((c) => c.label),
+      ai: screening
+        ? {
+            status: screening.status,
+            matchScore: screening.matchScore,
+            recommendation: screening.recommendation,
+            summary: screening.summary,
+            strengths: parseStringList(screening.strengths),
+            gaps: parseStringList(screening.gaps),
+            matchedSkills: parseStringList(screening.matchedSkills),
+            missingSkills: parseStringList(screening.missingSkills),
+            parameters: parseStoredParameters(screening.parameters),
+            confidence: screening.confidence,
+            error: screening.error,
+            // A timestamp, not just a date: re-screening the same resume twice
+            // in a day should be distinguishable in the audit trail.
+            scannedAt: screening.scannedAt
+              ? formatDateTime(screening.scannedAt)
+              : null,
+            resumeDocumentId: screening.resumeDocumentId,
+            extractionMethod: screening.extractionMethod,
+            modelName: screening.modelName,
+            promptVersion: screening.promptVersion,
+            inputTokens: screening.inputTokens,
+            outputTokens: screening.outputTokens,
+          }
+        : null,
       candidate: {
         id: application.candidate.id,
         fullName: application.candidate.fullName,
@@ -196,6 +261,18 @@ export default async function JobApplicantsPage({
         <Stat label="Under review" value={countFor("UNDER_REVIEW")} tone="warning" />
         <Stat label="Shortlisted" value={countFor("SHORTLISTED")} tone="success" />
         <Stat label="Rejected" value={countFor("REJECTED")} tone="danger" />
+      </div>
+
+      <div className="mb-6">
+        <ScreeningPanel
+          jobId={job.id}
+          configured={isScreeningConfigured()}
+          unscreened={screenableCount - screenedCount}
+          screened={screenedCount}
+          total={screenableCount}
+          bandCounts={bandCounts}
+          needsReview={needsReviewCount}
+        />
       </div>
 
       <div className="mb-6">
@@ -289,6 +366,20 @@ export default async function JobApplicantsPage({
       ) : null}
     </>
   );
+}
+
+/**
+ * Screening list fields are JSON-encoded strings because SQLite has no array
+ * type. A malformed value must not take down the applicant list.
+ */
+function parseStringList(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 export const dynamic = "force-dynamic";

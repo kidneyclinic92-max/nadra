@@ -224,8 +224,56 @@ model Application {
   appliedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  screening ResumeScreening?
+
   @@unique([jobId, candidateId])
   @@index([jobId, status])
   @@index([candidateId])
   @@index([status])
+}
+
+// AI resume screening. Deliberately a separate table from Application: a model
+// suggestion must never be confused with, or silently become, a recruiter's
+// decision. Nothing here writes back to Application.status.
+model ResumeScreening {
+  id            String      @id @default(cuid())
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  status String @default("PENDING") // PENDING | COMPLETED | FAILED | NEEDS_MANUAL_REVIEW
+
+  // 0-100 relevance of the resume to the job description. Null until completed.
+  matchScore     Int?
+  // STRONG_MATCH | POSSIBLE_MATCH | WEAK_MATCH. No "reject" value exists by
+  // design — the model ranks, a human decides.
+  recommendation String?
+
+  summary       String?
+  // JSON-encoded string arrays; SQLite has no array type.
+  strengths     String?
+  gaps          String?
+  matchedSkills String?
+  missingSkills String?
+
+  // JSON-encoded ScreeningParameterResult[]; the evidence-based breakdown a
+  // recruiter reads. Null on older rows screened before this field existed.
+  parameters String?
+  // HIGH | MEDIUM | LOW. Null until completed.
+  confidence String?
+
+  // Audit trail: which resume was read, how it was read, and by which model.
+  resumeDocumentId String?
+  extractionMethod String? // PDF_TEXT | VISION | NONE
+  modelName        String?
+  promptVersion    String?
+  inputTokens      Int?
+  outputTokens     Int?
+  error            String?
+
+  scannedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status])
+  @@index([matchScore])
 }

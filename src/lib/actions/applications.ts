@@ -6,6 +6,7 @@ import { requireStaff, requireUser } from "@/lib/auth";
 import { errorState, successState, type ActionState } from "@/lib/form";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { APPLICATION_STATUS_VALUES, isOneOf } from "@/lib/constants";
+import { isDeadlinePassed } from "@/lib/format";
 
 export async function applyToJobAction(
   _prev: ActionState,
@@ -30,7 +31,7 @@ export async function applyToJobAction(
   if (!candidate) return errorState("Complete your profile before applying.");
   if (!job) return errorState("This position no longer exists.");
   if (job.status !== "OPEN") return errorState("This position is not accepting applications.");
-  if (job.closingDate && job.closingDate.getTime() < Date.now()) {
+  if (isDeadlinePassed(job.closingDate)) {
     return errorState("The deadline for this position has passed.");
   }
   if (!candidate.isProfileComplete) {

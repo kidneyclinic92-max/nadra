@@ -10,7 +10,7 @@ import {
   labelFor,
 } from "@/lib/constants";
 import { evaluateEligibility } from "@/lib/eligibility";
-import { formatDate, formatDeadline } from "@/lib/format";
+import { formatDate, formatDeadline, isDeadlinePassed } from "@/lib/format";
 import {
   Alert,
   Badge,
@@ -63,9 +63,7 @@ export default async function JobDetailPage({ params }: { params: Params }) {
 
   const eligibility = candidate ? evaluateEligibility(candidate, job) : null;
 
-  const isClosed =
-    job.status === "CLOSED" ||
-    (job.closingDate !== null && job.closingDate.getTime() < Date.now());
+  const isClosed = job.status === "CLOSED" || isDeadlinePassed(job.closingDate);
 
   const location = [job.city, job.province ? labelFor(PROVINCES, job.province) : null]
     .filter(Boolean)

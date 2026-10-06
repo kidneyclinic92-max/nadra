@@ -135,6 +135,153 @@ export const APPLICATION_STATUSES = [
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number]["value"];
 export const APPLICATION_STATUS_VALUES = values(APPLICATION_STATUSES);
 
+export const SCREENING_STATUSES = [
+  { value: "PENDING", label: "Not screened" },
+  { value: "COMPLETED", label: "Screened" },
+  { value: "NEEDS_MANUAL_REVIEW", label: "Needs manual review" },
+  { value: "FAILED", label: "Screening failed" },
+] as const;
+export const SCREENING_STATUS_VALUES = values(SCREENING_STATUSES);
+
+/**
+ * There is deliberately no "reject" recommendation. The model ranks relevance;
+ * only a recruiter rejects an application.
+ *
+ * The bands and guidance here are the single source of truth: the screening
+ * prompt is generated from them, and the recruiter UI explains scores with
+ * them, so what the model was told and what the recruiter reads cannot drift.
+ */
+export const SCREENING_RECOMMENDATIONS = [
+  {
+    value: "STRONG_MATCH",
+    label: "Strong match",
+    min: 80,
+    max: 100,
+    guidance:
+      "clearly meets the stated requirements with directly relevant experience",
+  },
+  {
+    value: "POSSIBLE_MATCH",
+    label: "Possible match",
+    min: 50,
+    max: 79,
+    guidance:
+      "meets much of the requirement but with a real gap, or adjacent rather than direct experience",
+  },
+  {
+    value: "WEAK_MATCH",
+    label: "Weak match",
+    min: 0,
+    max: 49,
+    guidance: "little relevant evidence against the stated requirements",
+  },
+] as const;
+export const SCREENING_RECOMMENDATION_VALUES = values(SCREENING_RECOMMENDATIONS);
+
+export function screeningBand(recommendation: string | null | undefined) {
+  return SCREENING_RECOMMENDATIONS.find((r) => r.value === recommendation) ?? null;
+}
+
+/**
+ * The dimensions the model is allowed to score on. Weights sum to 100 and
+ * are the same numbers written into the screening prompt, so the overall
+ * match score is a weighted average of these — not a second, opaque number.
+ *
+ * Age, gender, domicile, quota and disability are deliberately absent: they
+ * are not permissible inputs to a relevance score.
+ */
+export const SCREENING_PARAMETERS = [
+  {
+    value: "EDUCATION",
+    label: "Qualification",
+    weight: 15,
+    description: "Whether the resume evidences the advertised minimum qualification.",
+  },
+  {
+    value: "FIELD_OF_STUDY",
+    label: "Field of study",
+    weight: 10,
+    description: "Whether the degree or major matches the advertised field.",
+  },
+  {
+    value: "EXPERIENCE",
+    label: "Experience",
+    weight: 25,
+    description: "Length and relevance of experience against the advertised minimum.",
+  },
+  {
+    value: "SKILLS",
+    label: "Required skills",
+    weight: 20,
+    description: "Which advertised skills the resume evidences.",
+  },
+  {
+    value: "ROLE_FIT",
+    label: "Role relevance",
+    weight: 30,
+    description: "How closely the work described matches this job's duties.",
+  },
+] as const;
+export type ScreeningParameterId = (typeof SCREENING_PARAMETERS)[number]["value"];
+export const SCREENING_PARAMETER_VALUES = values(SCREENING_PARAMETERS);
+
+export const SCREENING_VERDICTS = [
+  { value: "MET", label: "Evidenced" },
+  { value: "PARTIAL", label: "Partially evidenced" },
+  { value: "NOT_EVIDENCED", label: "Not evidenced" },
+  { value: "NOT_APPLICABLE", label: "Not advertised" },
+] as const;
+export type ScreeningVerdict = (typeof SCREENING_VERDICTS)[number]["value"];
+
+export const SCREENING_CONFIDENCE = [
+  { value: "HIGH", label: "High confidence" },
+  { value: "MEDIUM", label: "Medium confidence" },
+  { value: "LOW", label: "Low confidence" },
+] as const;
+export type ScreeningConfidence = (typeof SCREENING_CONFIDENCE)[number]["value"];
+
+export type ScreeningParameterResult = {
+  id: ScreeningParameterId;
+  verdict: ScreeningVerdict;
+  score: number;
+  requirement: string;
+  evidence: string;
+  finding: string;
+};
+
+/** Weighted average of assessed parameters; unadvertised criteria drop out. */
+export function scoreFromParameters(
+  parameters: Pick<ScreeningParameterResult, "id" | "score" | "verdict">[],
+): number {
+  const weightById = Object.fromEntries(
+    SCREENING_PARAMETERS.map((p) => [p.value, p.weight]),
+  ) as Record<string, number>;
+
+  const assessed = parameters.filter((p) => p.verdict !== "NOT_APPLICABLE");
+  const totalWeight = assessed.reduce((sum, p) => sum + (weightById[p.id] ?? 0), 0);
+  if (totalWeight === 0) return 0;
+
+  const weighted = assessed.reduce(
+    (sum, p) => sum + p.score * (weightById[p.id] ?? 0),
+    0,
+  );
+  return Math.round(weighted / totalWeight);
+}
+
+export function recommendationFromScore(score: number) {
+  return (
+    SCREENING_RECOMMENDATIONS.find((band) => score >= band.min && score <= band.max)
+      ?.value ?? "WEAK_MATCH"
+  );
+}
+
+/** How the resume was read. Surfaced so a recruiter can weigh reliability. */
+export const EXTRACTION_METHODS = [
+  { value: "PDF_TEXT", label: "PDF text layer" },
+  { value: "VISION", label: "Image recognition" },
+  { value: "NONE", label: "Could not be read" },
+] as const;
+
 export const DOCUMENT_TYPES = [
   {
     value: "PHOTO",

@@ -34,6 +34,12 @@ export function daysUntil(value: Date | null | undefined): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
+/** True once a job's closing date is in the past. A null date never closes. */
+export function isDeadlinePassed(closingDate: Date | null | undefined): boolean {
+  if (!closingDate) return false;
+  return closingDate.getTime() < Date.now();
+}
+
 export function formatDeadline(closingDate: Date | null | undefined): string {
   if (!closingDate) return "No deadline";
   const days = daysUntil(closingDate);
