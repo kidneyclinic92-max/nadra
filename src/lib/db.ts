@@ -7,11 +7,11 @@ function createClient() {
   const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
   const client = new PrismaClient({ adapter });
 
-  // WAL lets readers continue while a write is in flight, which is what keeps
-  // SQLite usable during an application deadline rush. busy_timeout makes
-  // concurrent writers wait for the lock instead of failing immediately.
+  // WAL is right for local disk. Azure App Service mounts /home as Azure Files,
+  // which does not support WAL and surfaces as 503s / disk I/O errors.
+  const journalMode = process.env.WEBSITE_SITE_NAME ? "DELETE" : "WAL";
   void client
-    .$queryRawUnsafe("PRAGMA journal_mode = WAL;")
+    .$queryRawUnsafe(`PRAGMA journal_mode = ${journalMode};`)
     .then(() => client.$queryRawUnsafe("PRAGMA busy_timeout = 5000;"))
     .then(() => client.$queryRawUnsafe("PRAGMA foreign_keys = ON;"))
     .catch((error) => {
