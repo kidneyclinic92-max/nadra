@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { prisma } from "@/lib/db";
+import { prisma, safeQuery } from "@/lib/db";
 import { JobCard } from "@/components/job-card";
 import { Button, EmptyState, Input, PageHeader, Select } from "@/components/ui";
 import { EDUCATION_LEVELS, PROVINCES } from "@/lib/constants";
@@ -19,24 +19,28 @@ export default async function JobsPage({
 }) {
   const { q = "", province = "", education = "" } = await searchParams;
 
-  const jobs = await prisma.job.findMany({
-    where: {
-      status: "OPEN",
-      ...(q
-        ? {
-            OR: [
-              { title: { contains: q } },
-              { code: { contains: q } },
-              { department: { contains: q } },
-              { description: { contains: q } },
-            ],
-          }
-        : {}),
-      ...(province ? { province } : {}),
-      ...(education ? { minEducationLevel: education } : {}),
-    },
-    orderBy: [{ closingDate: "asc" }, { createdAt: "desc" }],
-  });
+  const jobs = await safeQuery(
+    () =>
+      prisma.job.findMany({
+        where: {
+          status: "OPEN",
+          ...(q
+            ? {
+                OR: [
+                  { title: { contains: q } },
+                  { code: { contains: q } },
+                  { department: { contains: q } },
+                  { description: { contains: q } },
+                ],
+              }
+            : {}),
+          ...(province ? { province } : {}),
+          ...(education ? { minEducationLevel: education } : {}),
+        },
+        orderBy: [{ closingDate: "asc" }, { createdAt: "desc" }],
+      }),
+    [],
+  );
 
   const hasFilters = Boolean(q || province || education);
 

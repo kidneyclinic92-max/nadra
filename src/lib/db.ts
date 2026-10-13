@@ -1,9 +1,37 @@
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@/generated/prisma/client";
+import { applySqliteMigrations } from "@/lib/sqlite-migrate";
+
+if (process.env.WEBSITE_SITE_NAME) {
+  process.env.DATABASE_URL ??= "file:/home/data/nadra.db";
+  process.env.UPLOAD_DIR ??= "/home/data/uploads";
+}
 
 const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
 
+function ensureDataDirs() {
+  if (databaseUrl.startsWith("file:")) {
+    const dbFile = path.resolve(
+      /*turbopackIgnore: true*/ process.cwd(),
+      databaseUrl.slice("file:".length),
+    );
+    mkdirSync(/*turbopackIgnore: true*/ path.dirname(dbFile), {
+      recursive: true,
+    });
+  }
+  if (process.env.UPLOAD_DIR) {
+    mkdirSync(/*turbopackIgnore: true*/ process.env.UPLOAD_DIR, {
+      recursive: true,
+    });
+  }
+}
+
 function createClient() {
+  ensureDataDirs();
+  applySqliteMigrations(databaseUrl);
+
   const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
   const client = new PrismaClient({ adapter });
 
@@ -26,8 +54,29 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? createClient();
+function getClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createClient();
+  }
+  return globalForPrisma.prisma;
+}
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, property, receiver) {
+    const client = getClient();
+    const value = Reflect.get(client, property, receiver);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
+
+export async function safeQuery<T>(
+  query: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await query();
+  } catch (error) {
+    console.error("Database query failed", error);
+    return fallback;
+  }
 }

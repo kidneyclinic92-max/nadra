@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "node scripts/start-production.mjs",
+    "start": "node server.js",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "verify:storage": "tsx scripts/verify-storage.ts",

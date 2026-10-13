@@ -31,20 +31,36 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const { id } = await params;
-  const job = await prisma.job.findUnique({
-    where: { id },
-    select: { title: true },
-  });
-  return { title: job?.title ?? "Position" };
+  try {
+    const job = await prisma.job.findUnique({
+      where: { id },
+      select: { title: true },
+    });
+    return { title: job?.title ?? "Position" };
+  } catch (error) {
+    console.error("Could not load job metadata", error);
+    return { title: "Position" };
+  }
 }
 
 export default async function JobDetailPage({ params }: { params: Params }) {
   const { id } = await params;
 
-  const job = await prisma.job.findUnique({ where: { id } });
+  let job;
+  try {
+    job = await prisma.job.findUnique({ where: { id } });
+  } catch (error) {
+    console.error("Could not load job", error);
+    notFound();
+  }
   if (!job || job.status === "DRAFT") notFound();
 
-  const user = await getCurrentUser();
+  let user = null;
+  try {
+    user = await getCurrentUser();
+  } catch (error) {
+    console.error("Could not load session for job page", error);
+  }
 
   const candidate =
     user?.role === "CANDIDATE"

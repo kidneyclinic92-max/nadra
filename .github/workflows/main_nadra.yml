@@ -32,15 +32,36 @@ jobs:
           npm install
           npm run build
 
+      - name: Assemble standalone Azure package
+        run: |
+          set -euo pipefail
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+          cp -r prisma .next/standalone/prisma
+          mv .next/standalone/server.js .next/standalone/next-server.js
+          cp server.js .next/standalone/server.js
+          cp package.json .next/standalone/package.json
+          rm -f .next/standalone/.env .next/standalone/.env.*
+          rm -rf .next/standalone/storage
+
+          mkdir -p .next/standalone/node_modules/@prisma
+          for pkg in better-sqlite3 bindings file-uri-to-path prebuild-install; do
+            if [ -d "node_modules/$pkg" ]; then
+              cp -r "node_modules/$pkg" .next/standalone/node_modules/
+            fi
+          done
+          for pkg in adapter-better-sqlite3 client; do
+            if [ -d "node_modules/@prisma/$pkg" ]; then
+              cp -r "node_modules/@prisma/$pkg" .next/standalone/node_modules/@prisma/
+            fi
+          done
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           include-hidden-files: true
-          path: |
-            .
-            !.git
-            !.git/**
+          path: .next/standalone
 
   deploy:
     runs-on: ubuntu-latest

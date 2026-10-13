@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, FileCheck2, ListChecks, UserPlus } from "lucide-react";
-import { prisma } from "@/lib/db";
+import { prisma, safeQuery } from "@/lib/db";
 import { getCurrentUser, homePathForRole } from "@/lib/auth";
 import { Hero } from "@/components/hero";
 import { JobCard } from "@/components/job-card";
@@ -10,12 +10,16 @@ import { EmptyState, LinkButton } from "@/components/ui";
 export default async function HomePage() {
   const [user, jobs, openCount] = await Promise.all([
     getCurrentUser(),
-    prisma.job.findMany({
-      where: { status: "OPEN" },
-      orderBy: [{ closingDate: "asc" }, { createdAt: "desc" }],
-      take: 6,
-    }),
-    prisma.job.count({ where: { status: "OPEN" } }),
+    safeQuery(
+      () =>
+        prisma.job.findMany({
+          where: { status: "OPEN" },
+          orderBy: [{ closingDate: "asc" }, { createdAt: "desc" }],
+          take: 6,
+        }),
+      [],
+    ),
+    safeQuery(() => prisma.job.count({ where: { status: "OPEN" } }), 0),
   ]);
 
   return (
