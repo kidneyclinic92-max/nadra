@@ -40,9 +40,21 @@ jobs:
           cp -r prisma .next/standalone/prisma
           mv .next/standalone/server.js .next/standalone/next-server.js
           cp server.js .next/standalone/server.js
-          cp package.json .next/standalone/package.json
+          cp .deployment .next/standalone/.deployment
           rm -f .next/standalone/.env .next/standalone/.env.*
           rm -rf .next/standalone/storage
+          cat > .next/standalone/package.json << 'EOF'
+{
+  "name": "recruitment",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
+EOF
 
           mkdir -p .next/standalone/node_modules/@prisma
           for pkg in better-sqlite3 bindings file-uri-to-path prebuild-install; do
