@@ -2,51 +2,33 @@ import bcrypt from "bcryptjs";
 import type { PrismaClient } from "@/generated/prisma/client";
 
 const DEMO_PASSWORD = "Password123!";
+const ADMIN_EMAIL = "admin@recruitment.gov.pk";
+const RECRUITER_EMAIL = "recruiter@recruitment.gov.pk";
 
 /**
- * Azure starts with an empty SQLite file. Without this, demo logins 404 as
- * "incorrect password" even after the site boots.
+ * Azure's SQLite is a different file from local `dev.db`. Accounts created
+ * via Register exist there; the seeded recruiter does not unless we add it.
  */
 export async function seedIfEmpty(prisma: PrismaClient): Promise<void> {
-  const existing = await prisma.user.count();
-  if (existing > 0) return;
-
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
-  const closingDate = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.create({
-      data: {
-        email: "admin@recruitment.gov.pk",
-        passwordHash,
-        role: "ADMIN",
-      },
+  if (!(await prisma.user.findUnique({ where: { email: ADMIN_EMAIL } }))) {
+    await prisma.user.create({
+      data: { email: ADMIN_EMAIL, passwordHash, role: "ADMIN" },
     });
-    const recruiter = await tx.user.create({
-      data: {
-        email: "recruiter@recruitment.gov.pk",
-        passwordHash,
-        role: "RECRUITER",
-      },
+  }
+
+  let recruiter = await prisma.user.findUnique({
+    where: { email: RECRUITER_EMAIL },
+  });
+  if (!recruiter) {
+    recruiter = await prisma.user.create({
+      data: { email: RECRUITER_EMAIL, passwordHash, role: "RECRUITER" },
     });
-    await tx.user.create({
-      data: {
-        email: "ayesha.khan@example.com",
-        passwordHash,
-        role: "CANDIDATE",
-        candidate: {
-          create: {
-            fullName: "Ayesha Khan",
-            guardianName: "Imran Khan",
-            cnic: "35202-1234567-1",
-            mobile: "03001234567",
-            city: "Lahore",
-            province: "PUNJAB",
-          },
-        },
-      },
-    });
-    await tx.job.create({
+  }
+
+  if ((await prisma.job.count()) === 0) {
+    await prisma.job.create({
       data: {
         code: "IT/2026/001",
         title: "Assistant Director (Information Technology)",
@@ -59,13 +41,9 @@ export async function seedIfEmpty(prisma: PrismaClient): Promise<void> {
         payScale: "BPS-17",
         minEducationLevel: "BACHELORS",
         status: "OPEN",
-        closingDate,
+        closingDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
         createdById: recruiter.id,
       },
     });
-  });
-
-  console.log(
-    "Seeded empty database with demo accounts (password Password123!)",
-  );
+  }
 }
