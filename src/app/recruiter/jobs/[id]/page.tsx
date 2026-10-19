@@ -29,6 +29,7 @@ import {
 import { ActionButton } from "@/components/action-button";
 import { ApplicantTable } from "./applicant-table";
 import { ApplicantFilters } from "./applicant-filters";
+import { RankedShortlist } from "./ranked-shortlist";
 import { ScreeningPanel } from "./screening-panel";
 
 type Params = Promise<{ id: string }>;
@@ -69,6 +70,8 @@ export default async function JobApplicantsPage({
   if (!job) notFound();
 
   const minScore = Number(filters.minScore ?? "0") || 0;
+  // Rank by resume match unless the recruiter picks another sort.
+  const sort = filters.sort || "ai";
 
   const applications = await prisma.application.findMany({
     where: {
@@ -91,15 +94,15 @@ export default async function JobApplicantsPage({
       },
     },
     orderBy:
-      filters.sort === "recent"
+      sort === "recent"
         ? { appliedAt: "desc" }
-        : filters.sort === "name"
+        : sort === "name"
           ? { candidate: { fullName: "asc" } }
-          : filters.sort === "ai"
-            ? // SQLite sorts NULLs last on DESC, so unscreened applicants fall
+          : sort === "score"
+            ? [{ eligibilityScore: "desc" }, { appliedAt: "asc" }]
+            : // SQLite sorts NULLs last on DESC, so unscreened applicants fall
               // to the bottom rather than displacing scored ones.
-              [{ screening: { matchScore: "desc" } }, { eligibilityScore: "desc" }]
-            : [{ eligibilityScore: "desc" }, { appliedAt: "asc" }],
+              [{ screening: { matchScore: "desc" } }, { eligibilityScore: "desc" }],
     include: {
       candidate: {
         include: { educations: true, experiences: true },
@@ -108,12 +111,41 @@ export default async function JobApplicantsPage({
     },
   });
 
-  const screenedCount = await prisma.application.count({
-    where: { jobId: job.id, status: { not: "WITHDRAWN" }, screening: { status: "COMPLETED" } },
+  const rankedApplications = await prisma.application.findMany({
+    where: {
+      jobId: job.id,
+      status: { not: "WITHDRAWN" },
+      screening: { status: "COMPLETED", matchScore: { not: null } },
+    },
+    orderBy: { screening: { matchScore: "desc" } },
+    take: 10,
+    select: {
+      id: true,
+      status: true,
+      candidate: { select: { id: true, fullName: true } },
+      screening: { select: { matchScore: true, recommendation: true } },
+    },
   });
-  const screenableCount = await prisma.application.count({
-    where: { jobId: job.id, status: { not: "WITHDRAWN" } },
-  });
+
+  const [screenedCount, screenableCount, recommendedCount] = await Promise.all([
+    prisma.application.count({
+      where: {
+        jobId: job.id,
+        status: { not: "WITHDRAWN" },
+        screening: { status: "COMPLETED" },
+      },
+    }),
+    prisma.application.count({
+      where: { jobId: job.id, status: { not: "WITHDRAWN" } },
+    }),
+    prisma.application.count({
+      where: {
+        jobId: job.id,
+        status: { notIn: ["SHORTLISTED", "REJECTED", "WITHDRAWN"] },
+        screening: { status: "COMPLETED", matchScore: { gte: 80 } },
+      },
+    }),
+  ]);
 
   // Distribution across the recommendation bands, so the panel can show the
   // shape of the shortlist without the recruiter opening every row.
@@ -272,6 +304,22 @@ export default async function JobApplicantsPage({
           total={screenableCount}
           bandCounts={bandCounts}
           needsReview={needsReviewCount}
+          recommendedCount={recommendedCount}
+        />
+      </div>
+
+      <div className="mb-6">
+        <RankedShortlist
+          jobId={job.id}
+          vacancies={job.positions}
+          ranked={rankedApplications.map((application) => ({
+            id: application.id,
+            status: application.status,
+            candidateId: application.candidate.id,
+            fullName: application.candidate.fullName,
+            matchScore: application.screening?.matchScore ?? 0,
+            recommendation: application.screening?.recommendation ?? null,
+          }))}
         />
       </div>
 
@@ -328,7 +376,7 @@ export default async function JobApplicantsPage({
           description={`${rows.length} shown of ${totalApplicants} total`}
         />
         <CardBody className="border-b border-slate-200 bg-slate-50">
-          <ApplicantFilters jobId={job.id} current={filters} />
+          <ApplicantFilters jobId={job.id} current={{ ...filters, sort }} />
         </CardBody>
 
         {rows.length === 0 ? (

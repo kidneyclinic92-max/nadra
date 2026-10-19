@@ -31,8 +31,10 @@ export default async function RecruiterJobsPage({
     include: {
       _count: { select: { applications: true } },
       applications: {
-        where: { status: "SHORTLISTED" },
-        select: { id: true },
+        select: {
+          status: true,
+          screening: { select: { status: true, matchScore: true } },
+        },
       },
     },
   });
@@ -113,9 +115,24 @@ export default async function RecruiterJobsPage({
                     </p>
                   </div>
                   <div className="text-right">
+                    <p className="text-xs text-slate-500">AI screened</p>
+                    <p className="text-lg font-semibold text-slate-900">
+                      {
+                        job.applications.filter(
+                          (application) =>
+                            application.screening?.status === "COMPLETED",
+                        ).length
+                      }
+                    </p>
+                  </div>
+                  <div className="text-right">
                     <p className="text-xs text-slate-500">Shortlisted</p>
                     <p className="text-lg font-semibold text-emerald-700">
-                      {job.applications.length}
+                      {
+                        job.applications.filter(
+                          (application) => application.status === "SHORTLISTED",
+                        ).length
+                      }
                     </p>
                   </div>
                   <LinkButton
@@ -123,7 +140,7 @@ export default async function RecruiterJobsPage({
                     variant="secondary"
                     size="sm"
                   >
-                    Review
+                    Screen & rank
                   </LinkButton>
                 </div>
               </div>

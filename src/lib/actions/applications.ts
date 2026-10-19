@@ -137,3 +137,54 @@ export async function updateApplicationStatusAction(
     `${result.count} applicant${result.count === 1 ? "" : "s"} marked as ${label}.`,
   );
 }
+
+const STRONG_MATCH_MIN = 80;
+
+/**
+ * After a batch AI run, shortlist every applicant whose resume scored as a
+ * strong match. Does not reject anyone — weak scores stay for the recruiter
+ * to review.
+ */
+export async function shortlistRecommendedAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireStaff();
+  const jobId = String(formData.get("jobId") ?? "");
+  if (!jobId) return errorState("Position not found.");
+
+  const recommended = await prisma.application.findMany({
+    where: {
+      jobId,
+      status: { notIn: ["SHORTLISTED", "REJECTED", "WITHDRAWN"] },
+      screening: {
+        status: "COMPLETED",
+        matchScore: { gte: STRONG_MATCH_MIN },
+      },
+    },
+    select: { id: true },
+  });
+
+  if (recommended.length === 0) {
+    return errorState(
+      "No strong matches to shortlist yet. Run AI screening first, then try again.",
+    );
+  }
+
+  const result = await prisma.application.updateMany({
+    where: { id: { in: recommended.map((row) => row.id) } },
+    data: {
+      status: "SHORTLISTED",
+      reviewedById: user.id,
+      reviewedAt: new Date(),
+      recruiterNotes: `Shortlisted from AI screening (resume match ${STRONG_MATCH_MIN}%+).`,
+    },
+  });
+
+  revalidatePath("/recruiter", "layout");
+  revalidatePath(`/recruiter/jobs/${jobId}`);
+
+  return successState(
+    `Shortlisted ${result.count} strong match${result.count === 1 ? "" : "es"} from AI screening.`,
+  );
+}

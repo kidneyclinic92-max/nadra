@@ -9,8 +9,8 @@ import {
 import { Button, Input, Select } from "@/components/ui";
 
 const SORT_OPTIONS = [
-  { value: "score", label: "Criteria match first" },
   { value: "ai", label: "AI resume match first" },
+  { value: "score", label: "Criteria match first" },
   { value: "recent", label: "Most recent first" },
   { value: "name", label: "Name (A–Z)" },
 ];
@@ -84,7 +84,7 @@ export function ApplicantFilters({
         />
         <Select
           name="sort"
-          defaultValue={current.sort ?? "score"}
+          defaultValue={current.sort ?? "ai"}
           options={SORT_OPTIONS}
           aria-label="Sort applicants"
         />

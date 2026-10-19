@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Bot, Loader2, ShieldAlert, Sparkles } from "lucide-react";
 import { runJobScreeningAction } from "@/lib/actions/ai-screening";
+import { shortlistRecommendedAction } from "@/lib/actions/applications";
 import { SCREENING_RECOMMENDATIONS } from "@/lib/constants";
+import { ActionButton } from "@/components/action-button";
 import { Alert, Button, Card, CardBody, CardHeader } from "@/components/ui";
 
 const BAND_DOTS: Record<string, string> = {
@@ -24,6 +26,8 @@ type Props = {
   bandCounts: Record<string, number>;
   /** Screened but unreadable, so carrying no score. */
   needsReview: number;
+  /** Strong matches not yet shortlisted. */
+  recommendedCount: number;
 };
 
 type RunState = {
@@ -42,6 +46,7 @@ export function ScreeningPanel({
   total,
   bandCounts,
   needsReview,
+  recommendedCount,
 }: Props) {
   const router = useRouter();
   const [run, setRun] = useState<RunState>({
@@ -117,7 +122,7 @@ export function ScreeningPanel({
             AI resume screening
           </span>
         }
-        description="Scores each resume against qualification, field of study, experience, required skills and role relevance, with a quote from the resume for each. Advisory only — it never changes an application's status."
+        description="Runs across every applicant for this post, ranks resumes against the published criteria, then lets you shortlist the strongest matches in one step. Scores never reject anyone on their own."
         action={
           configured ? (
             <Button
@@ -179,8 +184,26 @@ export function ScreeningPanel({
                 Screened {run.processed} resume{run.processed === 1 ? "" : "s"}.
                 {run.failed > 0
                   ? ` ${run.failed} could not be scored — usually because no resume was uploaded, or the file has no readable text.`
-                  : ""}
+                  : " The ranked list below is ordered by resume match."}
               </Alert>
+            ) : null}
+
+            {recommendedCount > 0 && !isRunning ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                <p className="text-sm text-emerald-900">
+                  {recommendedCount} strong match
+                  {recommendedCount === 1 ? "" : "es"} ready to shortlist.
+                </p>
+                <ActionButton
+                  action={shortlistRecommendedAction}
+                  fields={{ jobId }}
+                  size="sm"
+                  confirm={`Shortlist ${recommendedCount} strong match${recommendedCount === 1 ? "" : "es"}?`}
+                  pendingLabel="Shortlisting…"
+                >
+                  Shortlist top matches
+                </ActionButton>
+              </div>
             ) : null}
 
             {screened > 0 && !isRunning ? (
