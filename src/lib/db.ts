@@ -3,6 +3,7 @@ import path from "node:path";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@/generated/prisma/client";
 import { applySqliteMigrations } from "@/lib/sqlite-migrate";
+import { seedIfEmpty } from "@/lib/seed-if-empty";
 
 if (process.env.WEBSITE_SITE_NAME) {
   process.env.DATABASE_URL ??= "file:/home/data/nadra.db";
@@ -34,6 +35,9 @@ function createClient() {
 
   const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
   const client = new PrismaClient({ adapter });
+  void seedIfEmpty(client).catch((error) => {
+    console.error("Failed to seed empty database", error);
+  });
 
   // WAL is right for local disk. Azure App Service mounts /home as Azure Files,
   // which does not support WAL and surfaces as 503s / disk I/O errors.

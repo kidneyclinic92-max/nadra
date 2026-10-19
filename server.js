@@ -2,7 +2,8 @@
  * Azure App Service runs `node server.js` when this file exists.
  * Stay in-process so the PID Azure health-checks is the one that binds PORT.
  */
-const { existsSync, mkdirSync } = require("node:fs");
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs");
+const { randomBytes } = require("node:crypto");
 const path = require("node:path");
 
 if (process.env.WEBSITE_SITE_NAME) {
@@ -10,6 +11,20 @@ if (process.env.WEBSITE_SITE_NAME) {
   process.env.HOSTNAME ||= "0.0.0.0";
   process.env.DATABASE_URL ||= "file:/home/data/nadra.db";
   process.env.UPLOAD_DIR ||= "/home/data/uploads";
+  if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32) {
+    const secretFile = "/home/data/auth-secret";
+    try {
+      mkdirSync("/home/data", { recursive: true });
+      if (existsSync(secretFile)) {
+        process.env.AUTH_SECRET = readFileSync(secretFile, "utf8").trim();
+      } else {
+        process.env.AUTH_SECRET = randomBytes(48).toString("base64url");
+        writeFileSync(secretFile, process.env.AUTH_SECRET);
+      }
+    } catch (error) {
+      console.error("Could not persist AUTH_SECRET", error);
+    }
+  }
 } else {
   process.env.PORT ||= "3000";
   process.env.HOSTNAME ||= "0.0.0.0";
