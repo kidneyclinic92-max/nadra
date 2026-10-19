@@ -42,6 +42,11 @@ export async function applyToJobAction(
   if (candidate.educations.length === 0) {
     return errorState("Add at least one education record before applying.");
   }
+  if (!candidate.documents.some((document) => document.type === "RESUME")) {
+    return errorState(
+      "Upload your resume before applying. AI screening and recruiters both need it.",
+    );
+  }
 
   const existing = await prisma.application.findUnique({
     where: { jobId_candidateId: { jobId, candidateId: candidate.id } },

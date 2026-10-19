@@ -178,7 +178,7 @@ export function ScreeningPanel({
               <Alert tone={run.failed > 0 ? "warning" : "success"}>
                 Screened {run.processed} resume{run.processed === 1 ? "" : "s"}.
                 {run.failed > 0
-                  ? ` ${run.failed} could not be read and need manual review.`
+                  ? ` ${run.failed} could not be scored — usually because no resume was uploaded, or the file has no readable text.`
                   : ""}
               </Alert>
             ) : null}
