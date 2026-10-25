@@ -372,6 +372,93 @@ const EXTRAS: Record<string, ResumeExtras> = {
     },
     certifications: ["ACCA, 9 of 13 papers completed"],
   },
+  "sara.malik@example.com": {
+    summary:
+      "Senior software engineer with five years building TypeScript and SQL services for internal HR and reporting platforms. Comfortable owning schema design, API reviews and production releases.",
+    skills: [
+      "TypeScript",
+      "SQL",
+      "Node.js",
+      "React",
+      "PostgreSQL",
+      "databases",
+      "REST APIs",
+      "Git",
+    ],
+    achievements: {
+      "Senior Software Engineer": [
+        "Led TypeScript services used by four departments for monthly HR returns.",
+        "Designed the reporting schema and cut nightly job time from three hours to twenty minutes.",
+        "Reviewed APIs and mentored two engineers through their first production release.",
+      ],
+    },
+    certifications: ["AWS Certified Developer Associate (2024)"],
+  },
+  "omar.qureshi@example.com": {
+    summary:
+      "Junior software engineer with two years on client portals. Builds React and Node features and writes SQL reports. Still building depth in larger system design.",
+    skills: ["JavaScript", "React", "Node.js", "SQL", "Git", "REST APIs"],
+    achievements: {
+      "Junior Software Engineer": [
+        "Shipped portal features in React and Node for two client programmes.",
+        "Wrote SQL reports used in weekly operations reviews.",
+      ],
+    },
+  },
+  "nadia.rehman@example.com": {
+    summary:
+      "Policy analyst with four years in provincial planning. Drafts policy notes, analyses programme data and runs district consultations.",
+    skills: [
+      "policy analysis",
+      "research",
+      "report writing",
+      "stakeholder consultation",
+      "SPSS",
+    ],
+    achievements: {
+      "Policy Analyst": [
+        "Drafted twelve provincial policy notes, four of which informed approved schemes.",
+        "Ran district consultations covering eight districts and consolidated the findings.",
+      ],
+    },
+  },
+  "kamran.ali@example.com": {
+    summary:
+      "Accounts associate with three years of monthly close, reconciliation and external audit support.",
+    skills: [
+      "reconciliation",
+      "audit",
+      "ledgers",
+      "budget preparation",
+      "Excel",
+    ],
+    achievements: {
+      "Accounts Associate": [
+        "Closed monthly ledgers with no material audit adjustments for four consecutive quarters.",
+        "Prepared external audit files and bank reconciliations for the engagement team.",
+      ],
+    },
+  },
+  "zainab.noor@example.com": {
+    summary:
+      "Recent software engineering graduate with a campus internship building TypeScript features, tests and documentation. Seeking a first full-time engineering role.",
+    skills: [
+      "TypeScript",
+      "Java",
+      "React",
+      "SQL",
+      "Git",
+      "software engineering",
+      "unit testing",
+    ],
+    achievements: {
+      "Software Intern": [
+        "Assisted with campus portal features and wrote tests in TypeScript.",
+        "Documented onboarding steps now used by new interns.",
+      ],
+    },
+    certifications: ["Meta Front-End Developer Certificate (2025)"],
+  },
   "imran.shah@example.com": {
     summary:
       "Retired Junior Commissioned Officer with twenty years of service in logistics coordination, personnel management and training delivery. Seeking a civilian administrative role.",

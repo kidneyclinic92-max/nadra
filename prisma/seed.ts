@@ -12,6 +12,10 @@ import bcrypt from "bcryptjs";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { evaluateEligibility } from "../src/lib/eligibility";
+import {
+  recommendationFromScore,
+  type ScreeningParameterResult,
+} from "../src/lib/constants";
 
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL ?? "file:./dev.db",
@@ -340,6 +344,251 @@ const CANDIDATE_SEEDS: CandidateSeed[] = [
       },
     ],
   },
+  {
+    email: "sara.malik@example.com",
+    fullName: "Sara Malik",
+    guardianName: "Javed Malik",
+    guardianRelation: "FATHER",
+    cnic: "35201-3344556-8",
+    gender: "FEMALE",
+    maritalStatus: "SINGLE",
+    mobile: "03024455667",
+    city: "Lahore",
+    province: "PUNJAB",
+    domicileDistrict: "Lahore",
+    domicileProvince: "PUNJAB",
+    quotaCategory: "WOMEN",
+    birthYearsAgo: 28,
+    linkedinUrl: "https://linkedin.com/in/sara-malik-demo",
+    educations: [
+      {
+        level: "MASTERS",
+        degreeTitle: "MS Software Engineering",
+        majorSubjects: "Distributed Systems, TypeScript",
+        institution: "LUMS",
+        boardOrUniversity: "Lahore University of Management Sciences",
+        passingYear: 2021,
+        resultType: "CGPA",
+        cgpa: 3.81,
+        maxCgpa: 4,
+      },
+      {
+        level: "BACHELORS",
+        degreeTitle: "BS Computer Science",
+        institution: "ITU Punjab",
+        boardOrUniversity: "Information Technology University",
+        passingYear: 2019,
+        resultType: "CGPA",
+        cgpa: 3.64,
+        maxCgpa: 4,
+      },
+    ],
+    experiences: [
+      {
+        organization: "Systems Limited",
+        designation: "Senior Software Engineer",
+        employmentType: "FULL_TIME",
+        startYearsAgo: 5,
+        isCurrent: true,
+        responsibilities:
+          "Lead TypeScript and SQL services for internal HR and reporting platforms. Own schema design, API reviews and production releases.",
+      },
+    ],
+  },
+  {
+    email: "omar.qureshi@example.com",
+    fullName: "Omar Qureshi",
+    guardianName: "Fahim Qureshi",
+    guardianRelation: "FATHER",
+    cnic: "42101-9988776-1",
+    gender: "MALE",
+    maritalStatus: "SINGLE",
+    mobile: "03219887766",
+    city: "Karachi",
+    province: "SINDH",
+    domicileDistrict: "Karachi South",
+    domicileProvince: "SINDH",
+    quotaCategory: "OPEN_MERIT",
+    birthYearsAgo: 25,
+    educations: [
+      {
+        level: "BACHELORS",
+        degreeTitle: "BS Information Technology",
+        majorSubjects: "Web development, Databases",
+        institution: "IBA Karachi",
+        boardOrUniversity: "Institute of Business Administration",
+        passingYear: 2023,
+        resultType: "CGPA",
+        cgpa: 3.2,
+        maxCgpa: 4,
+      },
+    ],
+    experiences: [
+      {
+        organization: "10Pearls",
+        designation: "Junior Software Engineer",
+        employmentType: "FULL_TIME",
+        startYearsAgo: 2,
+        isCurrent: true,
+        responsibilities:
+          "Build React and Node features for client portals. Write SQL reports and help with bug fixes.",
+      },
+    ],
+  },
+  {
+    email: "nadia.rehman@example.com",
+    fullName: "Nadia Rehman",
+    guardianName: "Abdul Rehman",
+    guardianRelation: "FATHER",
+    cnic: "17301-5566778-2",
+    gender: "FEMALE",
+    maritalStatus: "SINGLE",
+    mobile: "03335566778",
+    city: "Peshawar",
+    province: "KPK",
+    domicileDistrict: "Peshawar",
+    domicileProvince: "KPK",
+    quotaCategory: "WOMEN",
+    birthYearsAgo: 30,
+    educations: [
+      {
+        level: "MASTERS",
+        degreeTitle: "MPA Public Administration",
+        majorSubjects: "Public policy, Governance",
+        institution: "University of Peshawar",
+        boardOrUniversity: "University of Peshawar",
+        passingYear: 2020,
+        resultType: "MARKS",
+        obtainedMarks: 854,
+        totalMarks: 1100,
+      },
+    ],
+    experiences: [
+      {
+        organization: "Khyber Pakhtunkhwa Planning Cell",
+        designation: "Policy Analyst",
+        employmentType: "FULL_TIME",
+        startYearsAgo: 4,
+        isCurrent: true,
+        responsibilities:
+          "Draft provincial policy notes, analyse programme data and run district consultations.",
+      },
+    ],
+  },
+  {
+    email: "kamran.ali@example.com",
+    fullName: "Kamran Ali",
+    guardianName: "Sajid Ali",
+    guardianRelation: "FATHER",
+    cnic: "42301-1122445-7",
+    gender: "MALE",
+    maritalStatus: "MARRIED",
+    mobile: "03031122445",
+    city: "Hyderabad",
+    province: "SINDH",
+    domicileDistrict: "Hyderabad",
+    domicileProvince: "SINDH",
+    quotaCategory: "OPEN_MERIT",
+    birthYearsAgo: 27,
+    educations: [
+      {
+        level: "BACHELORS",
+        degreeTitle: "BCom Accounting",
+        majorSubjects: "Accounting, Audit",
+        institution: "University of Sindh",
+        boardOrUniversity: "University of Sindh",
+        passingYear: 2021,
+        resultType: "CGPA",
+        cgpa: 3.45,
+        maxCgpa: 4,
+      },
+    ],
+    experiences: [
+      {
+        organization: "A. F. Ferguson & Co",
+        designation: "Accounts Associate",
+        employmentType: "FULL_TIME",
+        startYearsAgo: 3,
+        isCurrent: true,
+        responsibilities:
+          "Monthly reconciliation, ledger close and supporting external audit files.",
+      },
+    ],
+  },
+  {
+    email: "zainab.noor@example.com",
+    fullName: "Zainab Noor",
+    guardianName: "Noor Ahmed",
+    guardianRelation: "FATHER",
+    cnic: "61101-7788990-4",
+    gender: "FEMALE",
+    maritalStatus: "SINGLE",
+    mobile: "03117788990",
+    city: "Islamabad",
+    province: "ICT",
+    domicileDistrict: "Islamabad",
+    domicileProvince: "ICT",
+    quotaCategory: "OPEN_MERIT",
+    birthYearsAgo: 22,
+    educations: [
+      {
+        level: "BACHELORS",
+        degreeTitle: "BS Software Engineering",
+        majorSubjects: "Software engineering, Databases",
+        institution: "NUST",
+        boardOrUniversity: "National University of Sciences & Technology",
+        passingYear: 2025,
+        resultType: "CGPA",
+        cgpa: 3.91,
+        maxCgpa: 4,
+      },
+    ],
+    experiences: [
+      {
+        organization: "NUST Career Services",
+        designation: "Software Intern",
+        employmentType: "INTERNSHIP",
+        startYearsAgo: 1,
+        endYearsAgo: 0,
+        isCurrent: false,
+        responsibilities:
+          "Assisted with campus portal features, tests and documentation in TypeScript.",
+      },
+    ],
+  },
+];
+
+/**
+ * Who applied where, and the dummy AI score to show. A null score leaves the
+ * row unscreened so the recruiter can still press "Screen applicants".
+ */
+const APPLICATION_SEEDS: {
+  email: string;
+  jobCode: string;
+  matchScore: number | null;
+}[] = [
+  { email: "sara.malik@example.com", jobCode: "IT/2026/001", matchScore: 92 },
+  { email: "ayesha.khan@example.com", jobCode: "IT/2026/001", matchScore: 88 },
+  { email: "zainab.noor@example.com", jobCode: "IT/2026/001", matchScore: 73 },
+  { email: "omar.qureshi@example.com", jobCode: "IT/2026/001", matchScore: 67 },
+  { email: "usman.tariq@example.com", jobCode: "IT/2026/001", matchScore: 41 },
+  { email: "bilal.ahmed@example.com", jobCode: "IT/2026/001", matchScore: 24 },
+
+  { email: "fatima.zahra@example.com", jobCode: "ADM/2026/007", matchScore: 91 },
+  { email: "nadia.rehman@example.com", jobCode: "ADM/2026/007", matchScore: 83 },
+  { email: "ayesha.khan@example.com", jobCode: "ADM/2026/007", matchScore: 38 },
+  { email: "imran.shah@example.com", jobCode: "ADM/2026/007", matchScore: null },
+
+  { email: "hina.baloch@example.com", jobCode: "FIN/2026/012", matchScore: 87 },
+  { email: "kamran.ali@example.com", jobCode: "FIN/2026/012", matchScore: 84 },
+  { email: "imran.shah@example.com", jobCode: "FIN/2026/012", matchScore: 31 },
+  { email: "ayesha.khan@example.com", jobCode: "FIN/2026/012", matchScore: 29 },
+
+  { email: "zainab.noor@example.com", jobCode: "IT/2026/018", matchScore: 89 },
+  { email: "usman.tariq@example.com", jobCode: "IT/2026/018", matchScore: 86 },
+  { email: "omar.qureshi@example.com", jobCode: "IT/2026/018", matchScore: 71 },
+  { email: "sara.malik@example.com", jobCode: "IT/2026/018", matchScore: 64 },
+  { email: "hina.baloch@example.com", jobCode: "IT/2026/018", matchScore: 22 },
 ];
 
 const JOB_SEEDS: JobSeed[] = [
@@ -456,6 +705,7 @@ const JOB_SEEDS: JobSeed[] = [
 
 async function main() {
   console.log("Clearing existing data…");
+  await prisma.resumeScreening.deleteMany();
   await prisma.application.deleteMany();
   await prisma.document.deleteMany();
   await prisma.experience.deleteMany();
@@ -543,45 +793,261 @@ async function main() {
     }
   }
 
-  console.log("Creating applications…");
+  console.log("Creating applications and dummy AI scores…");
   const candidates = await prisma.candidate.findMany({
-    include: { educations: true, experiences: true },
+    include: { user: true, educations: true, experiences: true },
   });
-  const openJobs = jobs.filter((job) => job.status === "OPEN");
+  const candidateByEmail = new Map(
+    candidates.map((candidate) => [candidate.user.email, candidate]),
+  );
+  const jobByCode = new Map(jobs.map((job) => [job.code, job]));
 
   let applicationCount = 0;
-  for (const candidate of candidates) {
-    // Each candidate applies to the two positions they match best, which gives
-    // the shortlisting screen a realistic spread of strong and weak applicants.
-    const ranked = openJobs
-      .map((job) => ({ job, result: evaluateEligibility(candidate, job) }))
-      .sort((a, b) => b.result.score - a.result.score)
-      .slice(0, 2);
+  let screenedCount = 0;
 
-    for (const { job, result } of ranked) {
-      await prisma.application.create({
-        data: {
-          jobId: job.id,
-          candidateId: candidate.id,
-          eligibilityScore: result.score,
-          status: result.meetsAll ? "UNDER_REVIEW" : "SUBMITTED",
-          coverNote:
-            result.score >= 75
-              ? `I believe my background aligns closely with the requirements for ${job.title}.`
-              : null,
-        },
-      });
-      applicationCount += 1;
+  for (const seed of APPLICATION_SEEDS) {
+    const candidate = candidateByEmail.get(seed.email);
+    const job = jobByCode.get(seed.jobCode);
+    if (!candidate || !job) {
+      throw new Error(`Seed reference missing: ${seed.email} → ${seed.jobCode}`);
     }
+
+    const result = evaluateEligibility(candidate, job);
+    const application = await prisma.application.create({
+      data: {
+        jobId: job.id,
+        candidateId: candidate.id,
+        eligibilityScore: result.score,
+        status: result.meetsAll ? "UNDER_REVIEW" : "SUBMITTED",
+        coverNote:
+          result.score >= 75
+            ? `I believe my background aligns closely with the requirements for ${job.title}.`
+            : null,
+      },
+    });
+    applicationCount += 1;
+
+    if (seed.matchScore == null) continue;
+
+    const screening = buildDemoScreening(job, candidate.fullName, seed.matchScore);
+    await prisma.resumeScreening.create({
+      data: {
+        applicationId: application.id,
+        status: "COMPLETED",
+        matchScore: screening.matchScore,
+        recommendation: screening.recommendation,
+        summary: screening.summary,
+        strengths: JSON.stringify(screening.strengths),
+        gaps: JSON.stringify(screening.gaps),
+        matchedSkills: JSON.stringify(screening.matchedSkills),
+        missingSkills: JSON.stringify(screening.missingSkills),
+        parameters: JSON.stringify(screening.parameters),
+        confidence: screening.confidence,
+        extractionMethod: "PDF_TEXT",
+        modelName: "demo-seed",
+        promptVersion: "demo-seed",
+        scannedAt: new Date(),
+      },
+    });
+    screenedCount += 1;
   }
 
   console.log(
-    `\nSeed complete: ${jobs.length} positions, ${candidates.length} candidates, ${applicationCount} applications.`,
+    `\nSeed complete: ${jobs.length} positions, ${candidates.length} candidates, ${applicationCount} applications, ${screenedCount} dummy AI scores.`,
   );
   console.log("\nDemo sign-in details (development only):");
   console.log(`  Admin      admin@recruitment.gov.pk      / ${DEMO_PASSWORD}`);
   console.log(`  Recruiter  recruiter@recruitment.gov.pk  / ${DEMO_PASSWORD}`);
   console.log(`  Candidate  ayesha.khan@example.com       / ${DEMO_PASSWORD}`);
+}
+
+function clampScore(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function buildDemoScreening(
+  job: {
+    title: string;
+    minEducationLevel: string | null;
+    requiredDegreeTitle: string | null;
+    minExperienceYears: number;
+    requiredSkills: string | null;
+    responsibilities: string | null;
+  },
+  fullName: string,
+  intendedScore: number,
+) {
+  const advertisedSkills = (job.requiredSkills ?? "")
+    .split(",")
+    .map((skill) => skill.trim())
+    .filter(Boolean);
+  const strong = intendedScore >= 80;
+  const mid = intendedScore >= 50;
+
+  const education: ScreeningParameterResult = {
+    id: "EDUCATION",
+    verdict: strong || mid ? "MET" : "PARTIAL",
+    score: clampScore(intendedScore + (strong ? 6 : mid ? 4 : -8)),
+    requirement: job.minEducationLevel ?? "Not advertised",
+    evidence: strong
+      ? "Degree title and passing year are stated on the resume."
+      : mid
+        ? "A related qualification is stated, though not an exact match."
+        : "Not stated in the resume.",
+    finding: strong
+      ? "The advertised minimum qualification is clearly evidenced."
+      : mid
+        ? "A qualification is present but does not fully match the advertised level."
+        : "The resume does not evidence the advertised minimum qualification.",
+  };
+
+  const field: ScreeningParameterResult = {
+    id: "FIELD_OF_STUDY",
+    verdict: job.requiredDegreeTitle
+      ? strong
+        ? "MET"
+        : mid
+          ? "PARTIAL"
+          : "NOT_EVIDENCED"
+      : "NOT_APPLICABLE",
+    score: job.requiredDegreeTitle
+      ? clampScore(intendedScore + (strong ? 4 : mid ? -4 : -20))
+      : 0,
+    requirement: job.requiredDegreeTitle ?? "Not advertised",
+    evidence: job.requiredDegreeTitle
+      ? strong
+        ? `Resume lists a degree aligned with ${job.requiredDegreeTitle}.`
+        : mid
+          ? "Resume lists an adjacent field of study."
+          : "Not stated in the resume."
+      : "Not advertised for this post.",
+    finding: job.requiredDegreeTitle
+      ? strong
+        ? "Field of study matches the advertised requirement."
+        : mid
+          ? "Field of study is related but not a direct match."
+          : "No evidence of the advertised field of study."
+      : "Not advertised for this post.",
+  };
+
+  const experience: ScreeningParameterResult = {
+    id: "EXPERIENCE",
+    verdict:
+      job.minExperienceYears <= 0
+        ? "NOT_APPLICABLE"
+        : strong
+          ? "MET"
+          : mid
+            ? "PARTIAL"
+            : "NOT_EVIDENCED",
+    score:
+      job.minExperienceYears <= 0
+        ? 0
+        : clampScore(intendedScore + (strong ? 2 : mid ? -6 : -18)),
+    requirement:
+      job.minExperienceYears > 0
+        ? `${job.minExperienceYears}+ years`
+        : "Not advertised",
+    evidence:
+      job.minExperienceYears <= 0
+        ? "Not advertised for this post."
+        : strong
+          ? "Current and previous roles cover the advertised length of experience."
+          : mid
+            ? "Some relevant work is listed, but the duration is shorter than advertised."
+            : "Not stated in the resume.",
+    finding:
+      job.minExperienceYears <= 0
+        ? "Not advertised for this post."
+        : strong
+          ? "Experience length and relevance meet the advertised minimum."
+          : mid
+            ? "Experience is only partly relevant to the advertised minimum."
+            : "The resume does not evidence the advertised experience.",
+  };
+
+  const skills: ScreeningParameterResult = {
+    id: "SKILLS",
+    verdict: advertisedSkills.length
+      ? strong
+        ? "MET"
+        : mid
+          ? "PARTIAL"
+          : "NOT_EVIDENCED"
+      : "NOT_APPLICABLE",
+    score: advertisedSkills.length
+      ? clampScore(intendedScore + (strong ? 3 : mid ? -2 : -16))
+      : 0,
+    requirement: advertisedSkills.join(", ") || "Not advertised",
+    evidence: advertisedSkills.length
+      ? strong
+        ? `Resume mentions ${advertisedSkills.slice(0, 2).join(" and ")}.`
+        : mid
+          ? "Resume mentions one of the advertised skills."
+          : "Not stated in the resume."
+      : "Not advertised for this post.",
+    finding: advertisedSkills.length
+      ? strong
+        ? "Advertised skills are evidenced in recent work."
+        : mid
+          ? "Some advertised skills appear; others are missing."
+          : "Advertised skills are not evidenced."
+      : "Not advertised for this post.",
+  };
+
+  const roleFit: ScreeningParameterResult = {
+    id: "ROLE_FIT",
+    verdict: strong ? "MET" : mid ? "PARTIAL" : "NOT_EVIDENCED",
+    score: clampScore(intendedScore + (strong ? -2 : mid ? -8 : -10)),
+    requirement: job.title,
+    evidence: strong
+      ? "Recent responsibilities overlap with the advertised duties."
+      : mid
+        ? "Some adjacent work is described, but not the core duties of this post."
+        : "Not stated in the resume.",
+    finding: strong
+      ? `The work described is a close match for ${job.title}.`
+      : mid
+        ? "Role relevance is mixed: adjacent experience, not a direct match."
+        : "Little of the described work matches this post.",
+  };
+
+  const parameters = [education, field, experience, skills, roleFit];
+  const matchScore = intendedScore;
+  const recommendation = recommendationFromScore(matchScore);
+  const matchedSkills = strong
+    ? advertisedSkills
+    : mid
+      ? advertisedSkills.slice(0, 1)
+      : [];
+  const missingSkills = advertisedSkills.filter((skill) => !matchedSkills.includes(skill));
+
+  return {
+    matchScore,
+    recommendation,
+    summary: strong
+      ? `${fullName}'s resume clearly meets the stated requirements for ${job.title}, with directly relevant experience.`
+      : mid
+        ? `${fullName}'s resume meets much of the requirement for ${job.title}, but a real gap remains.`
+        : `${fullName}'s resume shows little relevant evidence against the stated requirements for ${job.title}.`,
+    strengths: strong
+      ? [
+          "Qualification and field of study are explicitly stated.",
+          "Recent work maps onto the advertised duties.",
+        ]
+      : mid
+        ? ["Some relevant qualification or skills are present."]
+        : ["Limited job-relevant evidence on the resume."],
+    gaps: strong
+      ? ["Recruiter should still verify original documents."]
+      : mid
+        ? ["Experience or skills only partly match the advertisement."]
+        : ["Core advertised requirements are not evidenced."],
+    matchedSkills,
+    missingSkills,
+    parameters,
+    confidence: strong ? "HIGH" : mid ? "MEDIUM" : "LOW",
+  };
 }
 
 main()
