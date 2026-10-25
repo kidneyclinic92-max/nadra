@@ -36,7 +36,7 @@ function createClient() {
   const adapter = new PrismaBetterSqlite3({ url: databaseUrl });
   const client = new PrismaClient({ adapter });
   void seedIfEmpty(client).catch((error) => {
-    console.error("Failed to ensure demo staff accounts", error);
+    console.error("Failed to ensure demo pipeline", error);
   });
 
   // WAL is right for local disk. Azure App Service mounts /home as Azure Files,
