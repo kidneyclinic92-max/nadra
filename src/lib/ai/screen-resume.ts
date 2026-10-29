@@ -21,7 +21,7 @@ import type { ExtractionMethod } from "@/lib/ai/resume-text";
  * Bump when the prompt or schema changes so stored scores remain traceable to
  * the instructions that produced them.
  */
-export const PROMPT_VERSION = "2026-10-07.1";
+export const PROMPT_VERSION = "2026-10-26.1";
 
 /**
  * Generated from SCREENING_RECOMMENDATIONS so the bands the model is scored
@@ -230,6 +230,8 @@ export type JobCriteria = {
   requiredDegreeTitle: string | null;
   minExperienceYears: number;
   requiredSkills: string | null;
+  preferredCertifications?: string | null;
+  preferredKeywords?: string | null;
 };
 
 export type ScreeningOutcome =
@@ -274,6 +276,23 @@ function describeJob(job: JobCriteria): string {
 
   if (requirements.length > 0) {
     lines.push("", "Stated requirements:", ...requirements.map((r) => `- ${r}`));
+  }
+
+  const preferences = [
+    job.preferredCertifications?.trim()
+      ? `Preferred certifications: ${job.preferredCertifications.trim()}`
+      : null,
+    job.preferredKeywords?.trim()
+      ? `Preferred keywords: ${job.preferredKeywords.trim()}`
+      : null,
+  ].filter((line): line is string => line !== null);
+
+  if (preferences.length > 0) {
+    lines.push(
+      "",
+      "Preferred signals (raise relevance when evidenced; do not treat absence as a weak match if the stated requirements are met):",
+      ...preferences.map((item) => `- ${item}`),
+    );
   }
 
   return lines.join("\n");

@@ -15,6 +15,9 @@ export type RankedApplicant = {
   fullName: string;
   matchScore: number;
   recommendation: string | null;
+  preferenceHits: number;
+  preferenceTotal: number;
+  matchedPreferences: string[];
 };
 
 export function RankedShortlist({
@@ -41,7 +44,7 @@ export function RankedShortlist({
     <Card>
       <CardHeader
         title="Ranked from AI screening"
-        description={`Applicants ordered by resume match against this post. Strong matches score ${STRONG_MIN}% and above. This list does not change status until you shortlist.`}
+        description={`Applicants with more preferred certifications and keywords rise first, then AI resume match. Strong matches score ${STRONG_MIN}% and above. This list does not change status until you shortlist.`}
         action={
           recommended.length > 0 ? (
             <ActionButton
@@ -88,7 +91,15 @@ export function RankedShortlist({
                       </Link>
                       <p className="text-xs text-slate-500">
                         {band?.label ?? "Scored"} · {band?.guidance ?? ""}
+                        {row.preferenceTotal > 0
+                          ? ` · ${row.preferenceHits} of ${row.preferenceTotal} preferences`
+                          : ""}
                       </p>
+                      {row.matchedPreferences.length > 0 ? (
+                        <p className="mt-0.5 text-xs text-teal-700">
+                          {row.matchedPreferences.join(" · ")}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">

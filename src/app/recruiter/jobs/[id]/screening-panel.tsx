@@ -122,7 +122,7 @@ export function ScreeningPanel({
             AI resume screening
           </span>
         }
-        description="Runs across every applicant for this post, ranks resumes against the published criteria, then lets you shortlist the strongest matches in one step. Scores never reject anyone on their own."
+        description="Runs across every applicant for this post, ranks resumes against the published criteria plus preferred certifications and keywords, then lets you shortlist the strongest matches in one step. Scores never reject anyone on their own."
         action={
           configured ? (
             <Button

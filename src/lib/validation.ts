@@ -274,6 +274,8 @@ export const jobSchema = z
         message: "Choose a valid domicile restriction",
       }),
     requiredSkills: optionalText,
+    preferredCertifications: optionalText,
+    preferredKeywords: optionalText,
 
     status: z.enum(JOB_STATUS_VALUES).default("DRAFT"),
     closingDate: optionalDate,

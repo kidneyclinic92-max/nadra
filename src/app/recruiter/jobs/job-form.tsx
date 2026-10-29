@@ -44,6 +44,8 @@ export type JobFormDefaults = {
   genderRequirement: string;
   domicileRestriction: string;
   requiredSkills: string;
+  preferredCertifications: string;
+  preferredKeywords: string;
   status: string;
   closingDate: string;
 };
@@ -304,6 +306,44 @@ export function JobForm({ defaults }: { defaults: JobFormDefaults }) {
 
       <Card>
         <CardBody className="flex flex-col gap-5">
+          <SectionTitle>Screening preferences</SectionTitle>
+          <p className="-mt-2 text-sm text-slate-500">
+            These are not hard requirements. When a resume mentions them, that
+            applicant is ranked above others so you can shortlist faster.
+          </p>
+
+          <Field
+            label="Preferred certifications"
+            name="preferredCertifications"
+            error={errors.preferredCertifications}
+            hint="Comma separated. Matched against the resume and education records."
+          >
+            <Input
+              name="preferredCertifications"
+              placeholder="e.g. PMP, ACCA, AWS Certified Developer"
+              defaultValue={defaults.preferredCertifications}
+              error={errors.preferredCertifications}
+            />
+          </Field>
+
+          <Field
+            label="Preferred keywords"
+            name="preferredKeywords"
+            error={errors.preferredKeywords}
+            hint="Comma separated skills, tools or phrases to prioritise."
+          >
+            <Input
+              name="preferredKeywords"
+              placeholder="e.g. TypeScript, policy briefs, reconciliation"
+              defaultValue={defaults.preferredKeywords}
+              error={errors.preferredKeywords}
+            />
+          </Field>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardBody className="flex flex-col gap-5">
           <SectionTitle>Publishing</SectionTitle>
 
           <FormGrid>
@@ -369,6 +409,8 @@ export const EMPTY_JOB_DEFAULTS: JobFormDefaults = {
   genderRequirement: "ANY",
   domicileRestriction: "ANY",
   requiredSkills: "",
+  preferredCertifications: "",
+  preferredKeywords: "",
   status: "DRAFT",
   closingDate: "",
 };

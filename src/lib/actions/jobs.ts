@@ -39,6 +39,8 @@ export async function saveJobAction(
     closingDate: data.closingDate ?? null,
     minAge: data.minAge ?? null,
     maxAge: data.maxAge ?? null,
+    preferredCertifications: data.preferredCertifications ?? null,
+    preferredKeywords: data.preferredKeywords ?? null,
   };
 
   if (jobId) {

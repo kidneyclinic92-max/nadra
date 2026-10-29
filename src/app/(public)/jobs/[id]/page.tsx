@@ -206,6 +206,36 @@ export default async function JobDetailPage({ params }: { params: Params }) {
                   </div>
                 </div>
               ) : null}
+
+              {job.preferredCertifications ? (
+                <div className="mt-6">
+                  <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                    Preferred certifications
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {job.preferredCertifications.split(",").map((item) => (
+                      <Badge key={item} tone="success">
+                        {item.trim()}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {job.preferredKeywords ? (
+                <div className="mt-6">
+                  <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                    Preferred keywords
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {job.preferredKeywords.split(",").map((item) => (
+                      <Badge key={item} tone="neutral">
+                        {item.trim()}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </CardBody>
           </Card>
         </div>

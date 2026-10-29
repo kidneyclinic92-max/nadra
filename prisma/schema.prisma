@@ -185,6 +185,9 @@ model Job {
   genderRequirement   String  @default("ANY") // ANY | MALE | FEMALE
   domicileRestriction String  @default("ANY") // ANY | province code
   requiredSkills      String? // comma separated; SQLite has no array type
+  // Nice-to-have signals. Matching these raises ranking; it never rejects.
+  preferredCertifications String?
+  preferredKeywords       String?
 
   status      String   @default("DRAFT") // DRAFT | OPEN | CLOSED
   openingDate DateTime @default(now())

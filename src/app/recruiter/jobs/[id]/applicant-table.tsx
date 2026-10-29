@@ -24,6 +24,7 @@ import {
   screeningBand,
   type ScreeningParameterResult,
 } from "@/lib/constants";
+import type { PreferenceMatch } from "@/lib/preferences";
 import {
   Alert,
   Badge,
@@ -65,6 +66,7 @@ export type ApplicantRow = {
   score: number;
   meetsAll: boolean;
   failedCriteria: string[];
+  preferences: PreferenceMatch;
   ai: ApplicantAi | null;
   candidate: {
     id: string;
@@ -702,6 +704,18 @@ export function ApplicantTable({ rows }: { rows: ApplicantRow[] }) {
                       <Badge tone="info" className="mt-1">
                         {labelFor(QUOTA_CATEGORIES, row.candidate.quotaCategory)}
                       </Badge>
+                    ) : null}
+                    {row.preferences.total > 0 ? (
+                      <p className="mt-1 text-xs text-teal-700">
+                        {row.preferences.hitCount} of {row.preferences.total}{" "}
+                        preferences
+                        {row.preferences.hitCount > 0
+                          ? `: ${[
+                              ...row.preferences.certifications.matched,
+                              ...row.preferences.keywords.matched,
+                            ].join(", ")}`
+                          : ""}
+                      </p>
                     ) : null}
                   </td>
 

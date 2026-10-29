@@ -37,6 +37,8 @@ export default async function EditJobPage({ params }: { params: Params }) {
     genderRequirement: job.genderRequirement,
     domicileRestriction: job.domicileRestriction,
     requiredSkills: job.requiredSkills ?? "",
+    preferredCertifications: job.preferredCertifications ?? "",
+    preferredKeywords: job.preferredKeywords ?? "",
     status: job.status,
     closingDate: toDateInputValue(job.closingDate),
   };

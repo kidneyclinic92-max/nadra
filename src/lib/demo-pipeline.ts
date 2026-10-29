@@ -90,6 +90,8 @@ type JobSeed = {
   genderRequirement: string;
   domicileRestriction: string;
   requiredSkills?: string;
+  preferredCertifications?: string;
+  preferredKeywords?: string;
   status: string;
   closingDays: number | null;
 };
@@ -132,6 +134,14 @@ const CANDIDATE_SEEDS: CandidateSeed[] = [
         resultType: "CGPA",
         cgpa: 3.5,
         maxCgpa: 4,
+      },
+      {
+        level: "CERTIFICATION",
+        degreeTitle: "Microsoft Certified: Azure Data Fundamentals",
+        institution: "Microsoft",
+        boardOrUniversity: "Microsoft",
+        passingYear: 2023,
+        resultType: "GRADE",
       },
     ],
     experiences: [
@@ -212,6 +222,14 @@ const CANDIDATE_SEEDS: CandidateSeed[] = [
         obtainedMarks: 812,
         totalMarks: 1100,
       },
+      {
+        level: "CERTIFICATION",
+        degreeTitle: "Certificate in Monitoring & Evaluation",
+        institution: "Pakistan Institute of Development Economics",
+        boardOrUniversity: "PIDE",
+        passingYear: 2022,
+        resultType: "GRADE",
+      },
     ],
     experiences: [
       {
@@ -283,6 +301,14 @@ const CANDIDATE_SEEDS: CandidateSeed[] = [
         resultType: "CGPA",
         cgpa: 3.4,
         maxCgpa: 4,
+      },
+      {
+        level: "CERTIFICATION",
+        degreeTitle: "ACCA",
+        institution: "ACCA",
+        boardOrUniversity: "ACCA",
+        passingYear: 2024,
+        resultType: "GRADE",
       },
     ],
     experiences: [
@@ -372,6 +398,14 @@ const CANDIDATE_SEEDS: CandidateSeed[] = [
         resultType: "CGPA",
         cgpa: 3.64,
         maxCgpa: 4,
+      },
+      {
+        level: "CERTIFICATION",
+        degreeTitle: "AWS Certified Developer Associate",
+        institution: "Amazon Web Services",
+        boardOrUniversity: "Amazon Web Services",
+        passingYear: 2024,
+        resultType: "GRADE",
       },
     ],
     experiences: [
@@ -533,6 +567,14 @@ const CANDIDATE_SEEDS: CandidateSeed[] = [
         cgpa: 3.91,
         maxCgpa: 4,
       },
+      {
+        level: "CERTIFICATION",
+        degreeTitle: "Meta Front-End Developer Certificate",
+        institution: "Meta",
+        boardOrUniversity: "Meta",
+        passingYear: 2025,
+        resultType: "GRADE",
+      },
     ],
     experiences: [
       {
@@ -603,6 +645,8 @@ const JOB_SEEDS: JobSeed[] = [
     genderRequirement: "ANY",
     domicileRestriction: "ANY",
     requiredSkills: "SQL, TypeScript, databases",
+    preferredCertifications: "Azure Data Fundamentals, AWS Certified Developer",
+    preferredKeywords: "TypeScript, SQL, data migration",
     status: "OPEN",
     closingDays: 21,
   },
@@ -626,6 +670,8 @@ const JOB_SEEDS: JobSeed[] = [
     genderRequirement: "ANY",
     domicileRestriction: "KPK",
     requiredSkills: "policy, research, report writing",
+    preferredCertifications: "Monitoring & Evaluation",
+    preferredKeywords: "policy briefs, stakeholder consultation",
     status: "OPEN",
     closingDays: 14,
   },
@@ -649,6 +695,8 @@ const JOB_SEEDS: JobSeed[] = [
     genderRequirement: "ANY",
     domicileRestriction: "ANY",
     requiredSkills: "audit, reconciliation",
+    preferredCertifications: "ACCA",
+    preferredKeywords: "reconciliation, audit, IFRS",
     status: "OPEN",
     closingDays: 30,
   },
@@ -672,6 +720,8 @@ const JOB_SEEDS: JobSeed[] = [
     genderRequirement: "ANY",
     domicileRestriction: "ANY",
     requiredSkills: "software engineering",
+    preferredCertifications: "Meta Front-End Developer",
+    preferredKeywords: "TypeScript, React, unit testing",
     status: "OPEN",
     closingDays: 10,
   },
@@ -710,6 +760,7 @@ export async function seedDemoPipeline(
     await prisma.user.deleteMany();
   } else if (await prisma.user.findUnique({ where: { email: DEMO_MARKER_EMAIL } })) {
     await ensureStaff(prisma);
+    await ensureJobPreferences(prisma);
     return;
   }
 
@@ -732,17 +783,35 @@ export async function seedDemoPipeline(
   for (const seed of JOB_SEEDS) {
     const { closingDays, ...rest } = seed;
     const existing = await prisma.job.findUnique({ where: { code: seed.code } });
-    jobs.push(
-      existing ??
-        (await prisma.job.create({
+    if (existing) {
+      if (
+        !existing.preferredCertifications &&
+        (seed.preferredCertifications || seed.preferredKeywords)
+      ) {
+        jobs.push(
+          await prisma.job.update({
+            where: { id: existing.id },
+            data: {
+              preferredCertifications: seed.preferredCertifications ?? null,
+              preferredKeywords: seed.preferredKeywords ?? null,
+            },
+          }),
+        );
+      } else {
+        jobs.push(existing);
+      }
+    } else {
+      jobs.push(
+        await prisma.job.create({
           data: {
             ...rest,
             employmentType: rest.employmentType ?? "FULL_TIME",
             closingDate: closingDays != null ? daysFromNow(closingDays) : null,
             createdById: closingDays != null ? recruiter.id : admin.id,
           },
-        })),
-    );
+        }),
+      );
+    }
   }
 
   console.log("Creating candidates…");
@@ -868,9 +937,48 @@ export async function seedDemoPipeline(
     screenedCount += 1;
   }
 
+  await ensureJobPreferences(prisma);
+
   console.log(
     `Seed complete: ${jobs.length} positions, ${candidates.length} candidates, ${applicationCount} new applications, ${screenedCount} dummy AI scores.`,
   );
+}
+
+async function ensureJobPreferences(prisma: PrismaClient): Promise<void> {
+  for (const seed of JOB_SEEDS) {
+    if (!seed.preferredCertifications && !seed.preferredKeywords) continue;
+    const job = await prisma.job.findUnique({ where: { code: seed.code } });
+    if (!job) continue;
+    if (job.preferredCertifications || job.preferredKeywords) continue;
+    await prisma.job.update({
+      where: { id: job.id },
+      data: {
+        preferredCertifications: seed.preferredCertifications ?? null,
+        preferredKeywords: seed.preferredKeywords ?? null,
+      },
+    });
+  }
+
+  for (const seed of CANDIDATE_SEEDS) {
+    const user = await prisma.user.findUnique({
+      where: { email: seed.email },
+      include: { candidate: { include: { educations: true } } },
+    });
+    const candidate = user?.candidate;
+    if (!candidate) continue;
+
+    for (const education of seed.educations.filter(
+      (row) => row.level === "CERTIFICATION",
+    )) {
+      const already = candidate.educations.some(
+        (row) => row.degreeTitle === education.degreeTitle,
+      );
+      if (already) continue;
+      await prisma.education.create({
+        data: { ...education, candidateId: candidate.id },
+      });
+    }
+  }
 }
 
 async function ensureStaff(prisma: PrismaClient): Promise<void> {

@@ -26,6 +26,8 @@ const JOB_FIELDS = {
   requiredDegreeTitle: true,
   minExperienceYears: true,
   requiredSkills: true,
+  preferredCertifications: true,
+  preferredKeywords: true,
 } as const;
 
 export type ScreeningProgress = {

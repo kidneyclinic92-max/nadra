@@ -10,6 +10,10 @@ import {
   labelFor,
 } from "@/lib/constants";
 import { evaluateEligibility } from "@/lib/eligibility";
+import {
+  evaluatePreferences,
+  screeningPreferenceText,
+} from "@/lib/preferences";
 import { formatDate, formatDateTime, formatDeadline } from "@/lib/format";
 import { setJobStatusAction } from "@/lib/actions/jobs";
 import { isScreeningConfigured } from "@/lib/ai/azure-openai";
@@ -111,21 +115,36 @@ export default async function JobApplicantsPage({
     },
   });
 
-  const rankedApplications = await prisma.application.findMany({
+  const rankedSource = await prisma.application.findMany({
     where: {
       jobId: job.id,
       status: { not: "WITHDRAWN" },
       screening: { status: "COMPLETED", matchScore: { not: null } },
     },
-    orderBy: { screening: { matchScore: "desc" } },
-    take: 10,
-    select: {
-      id: true,
-      status: true,
-      candidate: { select: { id: true, fullName: true } },
-      screening: { select: { matchScore: true, recommendation: true } },
+    include: {
+      candidate: { include: { educations: true, experiences: true } },
+      screening: true,
     },
   });
+  const rankedApplications = [...rankedSource]
+    .map((application) => ({
+      application,
+      preferences: evaluatePreferences(
+        application.candidate,
+        job,
+        screeningPreferenceText(application.screening),
+      ),
+    }))
+    .sort((a, b) => {
+      if (b.preferences.hitCount !== a.preferences.hitCount) {
+        return b.preferences.hitCount - a.preferences.hitCount;
+      }
+      return (
+        (b.application.screening?.matchScore ?? -1) -
+        (a.application.screening?.matchScore ?? -1)
+      );
+    })
+    .slice(0, 10);
 
   const [screenedCount, screenableCount, recommendedCount] = await Promise.all([
     prisma.application.count({
@@ -186,6 +205,11 @@ export default async function JobApplicantsPage({
   const rows = applications.map((application) => {
     const result = evaluateEligibility(application.candidate, job);
     const screening = application.screening;
+    const preferences = evaluatePreferences(
+      application.candidate,
+      job,
+      screeningPreferenceText(screening),
+    );
     return {
       id: application.id,
       status: application.status,
@@ -194,6 +218,7 @@ export default async function JobApplicantsPage({
       score: result.score,
       meetsAll: result.meetsAll,
       failedCriteria: result.checks.filter((c) => !c.passed).map((c) => c.label),
+      preferences,
       ai: screening
         ? {
             status: screening.status,
@@ -233,6 +258,15 @@ export default async function JobApplicantsPage({
       },
     };
   });
+
+  if (sort === "ai") {
+    rows.sort((a, b) => {
+      if (b.preferences.hitCount !== a.preferences.hitCount) {
+        return b.preferences.hitCount - a.preferences.hitCount;
+      }
+      return (b.ai?.matchScore ?? -1) - (a.ai?.matchScore ?? -1);
+    });
+  }
 
   const location = [job.city, job.province ? labelFor(PROVINCES, job.province) : null]
     .filter(Boolean)
@@ -312,13 +346,19 @@ export default async function JobApplicantsPage({
         <RankedShortlist
           jobId={job.id}
           vacancies={job.positions}
-          ranked={rankedApplications.map((application) => ({
+          ranked={rankedApplications.map(({ application, preferences }) => ({
             id: application.id,
             status: application.status,
             candidateId: application.candidate.id,
             fullName: application.candidate.fullName,
             matchScore: application.screening?.matchScore ?? 0,
             recommendation: application.screening?.recommendation ?? null,
+            preferenceHits: preferences.hitCount,
+            preferenceTotal: preferences.total,
+            matchedPreferences: [
+              ...preferences.certifications.matched,
+              ...preferences.keywords.matched,
+            ],
           }))}
         />
       </div>
@@ -364,6 +404,14 @@ export default async function JobApplicantsPage({
                       : labelFor(PROVINCES, job.domicileRestriction),
                 },
                 { label: "Location", value: location || "—" },
+                {
+                  label: "Preferred certifications",
+                  value: job.preferredCertifications || "None",
+                },
+                {
+                  label: "Preferred keywords",
+                  value: job.preferredKeywords || "None",
+                },
               ]}
             />
           </CardBody>

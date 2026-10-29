@@ -9,7 +9,7 @@ import {
 import { Button, Input, Select } from "@/components/ui";
 
 const SORT_OPTIONS = [
-  { value: "ai", label: "AI resume match first" },
+  { value: "ai", label: "Preferences + AI match first" },
   { value: "score", label: "Criteria match first" },
   { value: "recent", label: "Most recent first" },
   { value: "name", label: "Name (A–Z)" },
