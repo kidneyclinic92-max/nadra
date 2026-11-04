@@ -121,6 +121,21 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Enter your password"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email("Enter a valid email address")),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "This reset link is invalid"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export const profileSchema = z.object({
   fullName: z.string().trim().min(3, "Please enter your full name"),
   guardianName: z.string().trim().min(3, "Please enter your father's or husband's name"),

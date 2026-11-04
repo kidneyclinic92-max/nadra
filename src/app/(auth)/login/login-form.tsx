@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction } from "@/lib/actions/auth";
 import { idleState } from "@/lib/form";
@@ -36,6 +37,12 @@ export function LoginForm() {
           error={errors.password}
         />
       </Field>
+      <Link
+        href="/forgot-password"
+        className="-mt-2 self-end text-sm font-medium text-teal-700 hover:underline"
+      >
+        Forgot password?
+      </Link>
 
       <SubmitButton className="mt-2 w-full" pendingLabel="Signing in…">
         Sign in

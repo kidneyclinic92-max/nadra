@@ -24,6 +24,8 @@ export type SessionPayload = {
   userId: string;
   email: string;
   role: Role;
+  /** Seconds since epoch; only present on sessions read back from the cookie. */
+  issuedAt?: number;
 };
 
 export async function hashPassword(password: string): Promise<string> {
@@ -72,6 +74,7 @@ export async function getSession(): Promise<SessionPayload | null> {
       userId: payload.sub,
       email: String(payload.email ?? ""),
       role: payload.role as Role,
+      issuedAt: payload.iat,
     };
   } catch {
     // Expired or tampered token; treat as signed out.
@@ -93,6 +96,13 @@ export async function getCurrentUser() {
   });
 
   if (!user || !user.isActive) return null;
+  // JWT iat has one-second resolution, so compare at that granularity.
+  if (
+    user.passwordChangedAt &&
+    (session.issuedAt ?? 0) < Math.floor(user.passwordChangedAt.getTime() / 1000)
+  ) {
+    return null;
+  }
   return user;
 }
 

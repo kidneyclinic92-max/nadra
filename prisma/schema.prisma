@@ -19,14 +19,30 @@ model User {
   passwordHash String
   role         String // CANDIDATE | RECRUITER | ADMIN
   isActive     Boolean  @default(true)
+  // Sessions issued before this moment are rejected, so a reset signs out other devices.
+  passwordChangedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   candidate        Candidate?
   jobsCreated      Job[]         @relation("JobCreatedBy")
   applicationsSeen Application[] @relation("ApplicationReviewedBy")
+  passwordResets   PasswordResetToken[]
 
   @@index([role])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Only the SHA-256 of the emailed token is stored.
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Candidate {
