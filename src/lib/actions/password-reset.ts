@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
-import { sendEmail } from "@/lib/email";
+import { appBaseUrl, escapeHtml, sendEmail } from "@/lib/email";
 import { errorState, successState, type ActionState } from "@/lib/form";
 import {
   fieldErrorsFrom,
@@ -19,20 +19,6 @@ const RESEND_COOLDOWN_MS = 60 * 1000;
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
-}
-
-/**
- * Taken from configuration rather than the request Host header, which a caller
- * controls and could point the emailed link at their own site.
- */
-function appBaseUrl(): string {
-  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/+$/, "");
-  if (process.env.WEBSITE_HOSTNAME) return `https://${process.env.WEBSITE_HOSTNAME}`;
-  return "http://localhost:3000";
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 }
 
 async function issueResetEmail(userId: string, email: string, name: string) {

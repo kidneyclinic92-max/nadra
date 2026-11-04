@@ -24,6 +24,20 @@ function getTransporter(): Transporter {
   return transporter;
 }
 
+/**
+ * Taken from configuration rather than the request Host header, which a caller
+ * controls and could point emailed links at their own site.
+ */
+export function appBaseUrl(): string {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/+$/, "");
+  if (process.env.WEBSITE_HOSTNAME) return `https://${process.env.WEBSITE_HOSTNAME}`;
+  return "http://localhost:3000";
+}
+
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+}
+
 export async function sendEmail(message: {
   to: string;
   subject: string;

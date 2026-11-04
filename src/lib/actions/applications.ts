@@ -1,12 +1,46 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
+import { appBaseUrl, escapeHtml, sendEmail } from "@/lib/email";
 import { requireStaff, requireUser } from "@/lib/auth";
 import { errorState, successState, type ActionState } from "@/lib/form";
 import { evaluateEligibility } from "@/lib/eligibility";
 import { APPLICATION_STATUS_VALUES, isOneOf } from "@/lib/constants";
-import { isDeadlinePassed } from "@/lib/format";
+import { formatDateTime, isDeadlinePassed } from "@/lib/format";
+
+async function sendApplicationReceivedEmail(details: {
+  to: string;
+  name: string;
+  jobTitle: string;
+  jobCode: string;
+  submittedAt: Date;
+}) {
+  const greeting = details.name ? `Dear ${details.name},` : "Dear applicant,";
+  const position = `${details.jobTitle} (${details.jobCode})`;
+  const submitted = formatDateTime(details.submittedAt);
+  const link = `${appBaseUrl()}/candidate/applications`;
+
+  await sendEmail({
+    to: details.to,
+    subject: `Application received: ${details.jobTitle}`,
+    text: [
+      greeting,
+      "",
+      `Thank you for applying. We have received your application for ${position}, submitted on ${submitted}.`,
+      "",
+      "Our recruitment team will review it, and you'll be contacted if you are shortlisted.",
+      `You can track its status at any time: ${link}`,
+    ].join("\n"),
+    html: `
+      <p>${escapeHtml(greeting)}</p>
+      <p>Thank you for applying. We have received your application for <strong>${escapeHtml(position)}</strong>, submitted on ${escapeHtml(submitted)}.</p>
+      <p>Our recruitment team will review it, and you'll be contacted if you are shortlisted.</p>
+      <p><a href="${link}" style="display:inline-block;padding:10px 18px;background:#0f766e;color:#fff;border-radius:6px;text-decoration:none">Track your application</a></p>
+    `,
+  });
+}
 
 export async function applyToJobAction(
   _prev: ActionState,
@@ -57,13 +91,27 @@ export async function applyToJobAction(
   // without recomputing every candidate on each page load.
   const { score } = evaluateEligibility(candidate, job);
 
-  await prisma.application.create({
+  const application = await prisma.application.create({
     data: {
       jobId,
       candidateId: candidate.id,
       coverNote,
       eligibilityScore: score,
     },
+  });
+
+  after(async () => {
+    try {
+      await sendApplicationReceivedEmail({
+        to: user.email,
+        name: candidate.fullName,
+        jobTitle: job.title,
+        jobCode: job.code,
+        submittedAt: application.appliedAt,
+      });
+    } catch (error) {
+      console.error("Failed to send application confirmation email", error);
+    }
   });
 
   revalidatePath(`/jobs/${jobId}`);
